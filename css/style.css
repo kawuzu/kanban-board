@@ -92,7 +92,7 @@ h2, h3 {
 }
 
 .task-item {
-    color: #e0e0e0;
+    color: #1e1e1e;
 }
 
 .task-item h3 {
@@ -120,7 +120,6 @@ h2, h3 {
     cursor: not-allowed;
 }
 
-
 .task-item .task-item input,
 .task-item .task-item textarea {
     width: 100%;
@@ -131,7 +130,6 @@ h2, h3 {
     background-color:rgba(192,255,133,0.5);
     color: #1e1e1e;
 }
-
 
 .task-item p {
     margin: 5px 0;
@@ -149,7 +147,6 @@ h2, h3 {
 .task-item .task-item .completed p {
     color: #8bc34a;
 }
-
 
 .task-item div textarea {
     width: 100%;
@@ -182,7 +179,6 @@ h1{
     margin: auto;
     margin-top: 50px;
 }
-
 
 @media (max-width: 768px) {
     #task-manager-app {

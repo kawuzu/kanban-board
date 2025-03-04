@@ -10,8 +10,12 @@
 <h1>Kanban</h1>
 <div id="task-manager-app">
     <task-creator @add-task="addNewTask"></task-creator>
-
-    <task-board :tasks="tasks" @delete-task="removeTask" @update-task="modifyTask"></task-board>
+    <task-board
+            :tasks="tasks"
+            :save-tasks="saveTasks"
+            @delete-task="removeTask"
+            @update-task="modifyTask">
+    </task-board>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>

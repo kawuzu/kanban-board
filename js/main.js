@@ -58,12 +58,26 @@ Vue.component('task-creator', {
     `
 });
 
-
 Vue.component('task-board', {
     props: {
         tasks: {
             type: Array,
             required: true
+        },
+        saveTasks: {
+            type: Function,
+            required: true
+        }
+    },
+    computed: {
+        hasUrgentTasks() {
+            const now = new Date();
+            return this.tasks.some(task => {
+                const deadline = new Date(task.deadline);
+                const diffTime = deadline - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 2 && task.status !== 'completed';
+            });
         }
     },
     methods: {
@@ -72,21 +86,22 @@ Vue.component('task-board', {
         },
         modifyTask({ index, updatedTask }) {
             this.$emit('update-task', { index, updatedTask });
+            this.saveTasks(); // Вызываем saveTasks после обновления задачи
         }
     },
     template: `
     <div class="task-board">
         <h2>Запланированные задачи</h2>
-        <task-list :tasks="tasks.filter(task => task.status === 'pending')" @delete-task="removeTask" @update-task="modifyTask"/>
+        <task-list :tasks="tasks.filter(task => task.status === 'pending')" :disabled="hasUrgentTasks" @delete-task="removeTask" @update-task="modifyTask"/>
 
         <h2>Задачи в работе</h2>
-        <task-list :tasks="tasks.filter(task => task.status === 'inProgress')" @delete-task="removeTask" @update-task="modifyTask"/>
+        <task-list :tasks="tasks.filter(task => task.status === 'inProgress')" :disabled="hasUrgentTasks" @delete-task="removeTask" @update-task="modifyTask"/>
 
         <h2>Тестирование</h2>
-        <task-list :tasks="tasks.filter(task => task.status === 'testing')" @delete-task="removeTask" @update-task="modifyTask"/>
+        <task-list :tasks="tasks.filter(task => task.status === 'testing')" :disabled="hasUrgentTasks" @delete-task="removeTask" @update-task="modifyTask"/>
 
         <h2>Выполненные задачи</h2>
-        <task-list :tasks="tasks.filter(task => task.status === 'completed')" @delete-task="removeTask" @update-task="modifyTask"/>
+        <task-list :tasks="tasks.filter(task => task.status === 'completed')" :disabled="hasUrgentTasks" @delete-task="removeTask" @update-task="modifyTask"/>
     </div>
     `
 });
@@ -96,6 +111,10 @@ Vue.component('task-list', {
         tasks: {
             type: Array,
             required: true
+        },
+        disabled: {
+            type: Boolean,
+            default: false
         }
     },
     methods: {
@@ -104,14 +123,22 @@ Vue.component('task-list', {
         },
         modifyTask({ index, updatedTask }) {
             this.$emit('update-task', { index, updatedTask });
+        },
+        isTaskUrgent(task) {
+            const now = new Date();
+            const deadline = new Date(task.deadline);
+            const diffTime = deadline - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays <= 2;
         }
     },
     template: `
     <ul class="task-list">
-        <li v-for="(task, index) in tasks" :key="index">
+        <li v-for="(task, index) in tasks" :key="task.title + index">
             <task-item 
                 :task="task" 
                 :index="index"
+                :disabled="disabled && !isTaskUrgent(task)"
                 @delete-task="removeTask"
                 @update-task="modifyTask" />
         </li>
@@ -128,6 +155,10 @@ Vue.component('task-item', {
         index: {
             type: Number,
             required: true
+        },
+        disabled: {
+            type: Boolean,
+            default: false
         }
     },
     data() {
@@ -138,6 +169,15 @@ Vue.component('task-item', {
             editedDeadline: this.task.deadline,
             returnReason: ''
         };
+    },
+    computed: {
+        isUrgent() {
+            const now = new Date();
+            const deadline = new Date(this.task.deadline);
+            const diffTime = deadline - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays <= 2;
+        }
     },
     methods: {
         removeTask() {
@@ -194,7 +234,6 @@ Vue.component('task-item', {
     template: `
     <div class="task-item">
         <div v-if="isEditing && task.status !== 'completed'">
-
             <div>
                 <label for="editedTitle">Заголовок:</label>
                 <input type="text" id="editedTitle" v-model="editedTitle" required />
@@ -219,14 +258,14 @@ Vue.component('task-item', {
                 <p><strong>Причина возврата:</strong> {{ task.returnReason }}</p>
             </div>
             
-            <button v-if="task.status !== 'completed'" @click="editTask">Редактировать</button>
-            <button v-if="task.status === 'pending'" @click="removeTask">Удалить</button>
-            <button v-if="task.status === 'pending'" @click="moveToInProgress">Далее</button>
-            <button v-if="task.status === 'inProgress'" @click="moveToTesting">Тестирование</button>
+            <button v-if="task.status !== 'completed'" @click="editTask" :disabled="disabled">Редактировать</button>
+            <button v-if="task.status === 'pending'" @click="removeTask" :disabled="disabled">Удалить</button>
+            <button v-if="task.status === 'pending'" @click="moveToInProgress" :disabled="disabled">Далее</button>
+            <button v-if="task.status === 'inProgress'" @click="moveToTesting" :disabled="disabled">Тестирование</button>
             <div v-if="task.status === 'testing'">
                 <label for="returnReason">Причина возврата:</label>
                 <textarea id="returnReason" v-model="returnReason" required></textarea>
-                <button @click="returnToInProgress">Вернуть в работу</button>
+                <button @click="returnToInProgress" :disabled="disabled">Вернуть в работу</button>
                 <button @click="markAsCompleted">Завершить</button>
             </div>
             <p v-if="task.status === 'completed'">
@@ -238,23 +277,43 @@ Vue.component('task-item', {
     `
 });
 
-
 new Vue({
     el: '#task-manager-app',
     data() {
         return {
-            tasks: []
+            tasks: JSON.parse(localStorage.getItem('tasks')) || []
         };
+    },
+    computed: {
+        hasUrgentTasks() {
+            const now = new Date();
+            return this.tasks.some(task => {
+                const deadline = new Date(task.deadline);
+                const diffTime = deadline - now;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 2 && task.status !== 'completed';
+            });
+        }
     },
     methods: {
         addNewTask(newTask) {
             this.tasks.push(newTask);
+            this.saveTasks();
         },
         removeTask(index) {
             this.tasks.splice(index, 1);
+            this.saveTasks();
         },
         modifyTask({ index, updatedTask }) {
-            this.tasks.splice(index, 1, updatedTask);
+            if (index >= 0 && index < this.tasks.length) {
+                this.tasks.splice(index, 1, updatedTask);
+                this.saveTasks();
+            } else {
+                console.error("Invalid index:", index);
+            }
+        },
+        saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(this.tasks));
         }
     }
 });
