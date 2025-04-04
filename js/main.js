@@ -86,22 +86,38 @@ Vue.component('task-board', {
         },
         modifyTask({ index, updatedTask }) {
             this.$emit('update-task', { index, updatedTask });
-            this.saveTasks(); // Вызываем saveTasks после обновления задачи
+            this.saveTasks();
         }
     },
     template: `
     <div class="task-board">
         <h2>Запланированные задачи</h2>
-        <task-list :tasks="tasks.filter(task => task.status === 'pending')" :disabled="hasUrgentTasks" @delete-task="removeTask" @update-task="modifyTask"/>
+        <task-list 
+            :tasks="tasks.filter(task => task.status === 'pending')" 
+            :disabled="hasUrgentTasks && tasks.some(t => new Date(t.deadline) - new Date() <= 2 * 24 * 60 * 60 * 1000 && t.status !== 'completed')"
+            @delete-task="removeTask" 
+            @update-task="modifyTask"/>
 
         <h2>Задачи в работе</h2>
-        <task-list :tasks="tasks.filter(task => task.status === 'inProgress')" :disabled="hasUrgentTasks" @delete-task="removeTask" @update-task="modifyTask"/>
+        <task-list 
+            :tasks="tasks.filter(task => task.status === 'inProgress')" 
+            :disabled="hasUrgentTasks && tasks.some(t => new Date(t.deadline) - new Date() <= 2 * 24 * 60 * 60 * 1000 && t.status !== 'completed')"
+            @delete-task="removeTask" 
+            @update-task="modifyTask"/>
 
         <h2>Тестирование</h2>
-        <task-list :tasks="tasks.filter(task => task.status === 'testing')" :disabled="hasUrgentTasks" @delete-task="removeTask" @update-task="modifyTask"/>
+        <task-list 
+            :tasks="tasks.filter(task => task.status === 'testing')" 
+            :disabled="hasUrgentTasks && tasks.some(t => new Date(t.deadline) - new Date() <= 2 * 24 * 60 * 60 * 1000 && t.status !== 'completed')"
+            @delete-task="removeTask" 
+            @update-task="modifyTask"/>
 
         <h2>Выполненные задачи</h2>
-        <task-list :tasks="tasks.filter(task => task.status === 'completed')" :disabled="hasUrgentTasks" @delete-task="removeTask" @update-task="modifyTask"/>
+        <task-list 
+            :tasks="tasks.filter(task => task.status === 'completed')" 
+            :disabled="false"
+            @delete-task="removeTask" 
+            @update-task="modifyTask"/>
     </div>
     `
 });
@@ -138,7 +154,7 @@ Vue.component('task-list', {
             <task-item 
                 :task="task" 
                 :index="index"
-                :disabled="disabled && !isTaskUrgent(task)"
+                :disabled="disabled && !isTaskUrgent(task) && task.status !== 'completed'"
                 @delete-task="removeTask"
                 @update-task="modifyTask" />
         </li>
